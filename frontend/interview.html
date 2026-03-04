@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>InterviewAI — Live Interview</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/interview.css" />
+    <!-- face-api.js for facial expression analysis (served locally) -->
+    <script src="js/face-api.min.js"></script>
+    <style>
+        /* Facial expression panel */
+        .face-panel {
+            padding: 14px 16px;
+            border-radius: var(--radius-md);
+        }
+
+        .face-panel-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .face-expr-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            gap: 8px;
+        }
+
+        .face-expr-label {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            min-width: 80px;
+        }
+
+        .face-expr-bar-bg {
+            flex: 1;
+            height: 5px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            overflow: hidden;
+        }
+
+        .face-expr-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .face-expr-val {
+            font-size: 0.72rem;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--text-muted);
+            min-width: 28px;
+            text-align: right;
+        }
+
+        .face-status {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        .dominant-expr {
+            text-align: center;
+            padding: 6px;
+            border-radius: var(--radius-sm);
+            background: rgba(59, 130, 246, 0.06);
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-bottom: 10px;
+        }
+
+        /* Express color bands */
+        .expr-happy {
+            background: linear-gradient(90deg, #10b981, #06b6d4);
+        }
+
+        .expr-neutral {
+            background: linear-gradient(90deg, #3b82f6, #818cf8);
+        }
+
+        .expr-surprised {
+            background: linear-gradient(90deg, #f59e0b, #f97316);
+        }
+
+        .expr-fearful {
+            background: linear-gradient(90deg, #8b5cf6, #ec4899);
+        }
+
+        .expr-sad {
+            background: linear-gradient(90deg, #64748b, #475569);
+        }
+
+        .expr-angry {
+            background: linear-gradient(90deg, #ef4444, #f97316);
+        }
+
+        .expr-disgusted {
+            background: linear-gradient(90deg, #78716c, #57534e);
+        }
+
+        /* ── Multi-face Warning Overlay ─────────────────────────── */
+        #multi-face-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(10, 0, 0, 0.88);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            animation: overlayFadeIn 0.3s ease;
+        }
+
+        #multi-face-overlay.visible {
+            display: flex;
+        }
+
+        @keyframes overlayFadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .mf-icon {
+            font-size: 5rem;
+            animation: iconShake 0.5s ease infinite;
+        }
+
+        @keyframes iconShake {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(-4deg);
+            }
+
+            50% {
+                transform: translateY(-4px) rotate(4deg);
+            }
+        }
+
+        .mf-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #ef4444;
+            text-shadow: 0 0 24px rgba(239, 68, 68, 0.7);
+            letter-spacing: -0.5px;
+            text-align: center;
+        }
+
+        .mf-subtitle {
+            font-size: 1rem;
+            color: #fca5a5;
+            text-align: center;
+            max-width: 420px;
+            line-height: 1.6;
+        }
+
+        .mf-countdown-ring {
+            position: relative;
+            width: 110px;
+            height: 110px;
+        }
+
+        .mf-countdown-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .mf-countdown-ring .ring-bg {
+            stroke: rgba(239, 68, 68, 0.2);
+            fill: none;
+        }
+
+        .mf-countdown-ring .ring-fill {
+            fill: none;
+            stroke: #ef4444;
+            stroke-linecap: round;
+            stroke-dasharray: 283;
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 0.6s linear;
+            filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.8));
+        }
+
+        .mf-countdown-num {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: #ef4444;
+        }
+
+        .mf-resolve {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.45);
+            font-style: italic;
+            text-align: center;
+        }
+
+        /* ── Face Count Badge (webcam overlay) ──────────────────────── */
+        .face-count-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            backdrop-filter: blur(8px);
+            transition: background 0.3s, color 0.3s, border-color 0.3s;
+            border: 1px solid;
+            z-index: 10;
+        }
+
+        .face-count-badge.ok {
+            background: rgba(16, 185, 129, 0.18);
+            border-color: rgba(16, 185, 129, 0.5);
+            color: #6ee7b7;
+        }
+
+        .face-count-badge.warn {
+            background: rgba(239, 68, 68, 0.22);
+            border-color: rgba(239, 68, 68, 0.6);
+            color: #fca5a5;
+            animation: badgePulse 0.7s ease infinite;
+        }
+
+        @keyframes badgePulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* Face AI Feedback Panel ─────────────────────────────── */
+        .face-ai-panel {
+            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            margin-top: 0;
+        }
+
+        .face-ai-panel-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        #face-ai-feedback {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            animation: fadeSlideIn 0.4s ease;
+        }
+
+        #face-ai-feedback.face-ai-visible {
+            display: flex;
+        }
+
+        .face-ai-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .face-ai-expr {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-primary, #f1f5f9);
+        }
+
+        .face-ai-conf {
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .face-ai-posture {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            padding: 4px 0;
+        }
+
+        .face-ai-msg {
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            font-style: italic;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 6px;
+        }
+
+        .face-ai-placeholder {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-style: italic;
+            text-align: center;
+            padding: 4px 0;
+        }
+
+        /* ── Capture Button ────────────────────────────────────────── */
+        .capture-btn {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
+            border: 1px solid rgba(139, 92, 246, 0.35);
+            border-radius: var(--radius-sm, 8px);
+            color: #a78bfa;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.3px;
+        }
+
+        .capture-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.28), rgba(139, 92, 246, 0.28));
+            border-color: #8b5cf6;
+            color: #c4b5fd;
+            transform: translateY(-1px);
+        }
+
+        .capture-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        /* ── Replay Button ─────────────────────────────────────────── */
+        .replay-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+            padding: 6px 14px;
+            background: rgba(59, 130, 246, 0.10);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 999px;
+            color: #60a5fa;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .replay-btn:hover {
+            background: rgba(59, 130, 246, 0.22);
+            color: #93c5fd;
+        }
+
+        /* ── Typewriter Animation ──────────────────────────────────── */
+        @keyframes typewriterCursor {
+
+            0%,
+            100% {
+                border-right-color: rgba(96, 165, 250, 0.8);
+            }
+
+            50% {
+                border-right-color: transparent;
+            }
+        }
+
+        .typing-cursor {
+            border-right: 2px solid rgba(96, 165, 250, 0.8);
+            animation: typewriterCursor 0.75s step-end infinite;
+        }
+
+        /* ── Auto-capture flash ────────────────────────────────────── */
+        @keyframes captureFlash {
+            0% {
+                box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6);
+            }
+
+            50% {
+                box-shadow: 0 0 0 12px rgba(139, 92, 246, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+            }
+        }
+
+        .webcam-flash {
+            animation: captureFlash 0.6s ease-out;
+        }
+
+
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="app-header">
+        <a href="/" class="logo">
+            <div class="logo-icon">🎯</div>
+            <div>
+                <div class="logo-text">InterviewAI</div>
+                <div class="logo-sub">Live Session</div>
+            </div>
+        </a>
+        <div style="display:flex;align-items:center;gap:16px">
+            <span id="candidate-name-display"
+                style="font-size:0.95rem;font-weight:600;color:var(--text-secondary)"></span>
+            <span id="role-display"
+                style="font-size:0.78rem;color:var(--text-muted);background:rgba(255,255,255,0.05);padding:4px 12px;border-radius:999px;border:1px solid var(--border)"></span>
+        </div>
+    </header>
+
+    <!-- Analyzing Overlay -->
+    <div id="analyzing-overlay" style="display:none">
+        <div class="spinner"></div>
+        <div class="analyzing-text">🧠 Gemini AI is analyzing your responses…</div>
+        <div class="analyzing-sub">This may take a few seconds. Please wait.</div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="interview-layout">
+
+        <!-- Progress -->
+        <div class="interview-progress-bar">
+            <div class="progress-steps" id="progress-steps"></div>
+            <span class="question-counter" id="q-counter">Q1 of 5</span>
+        </div>
+
+        <!-- Center: Question + Audio -->
+        <div class="interview-main">
+
+            <!-- AI Question Card -->
+            <div class="ai-question-card glass">
+                <div class="ai-header">
+                    <div class="ai-avatar" id="ai-avatar-container" style="overflow: hidden; position: relative;">
+                        <!-- 3D Avatar will be injected here -->
+                        <div class="ai-avatar-ring" id="ai-avatar-ring"
+                            style="position: absolute; inset: 0; pointer-events: none;"></div>
+                    </div>
+                    <div class="ai-info">
+                        <div class="ai-name">AI Interviewer</div>
+                        <div class="ai-status">
+                            <div class="status-indicator" id="ai-status-dot"></div>
+                            <span id="ai-status-text">Preparing question…</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="question-text" id="question-text">Loading question…</div>
+                <!-- Replay button: re-reads the current question aloud -->
+                <button class="replay-btn" id="replay-btn" title="Hear question again">
+                    🔊 Replay Question
+                </button>
+            </div>
+
+            <!-- Waveform -->
+            <div class="waveform-section glass">
+                <div class="waveform-label">🎤 Audio Waveform</div>
+                <canvas id="waveform-canvas"></canvas>
+            </div>
+
+            <!-- Transcript / Translation -->
+            <div class="transcript-section glass" style="flex:1;min-height:120px">
+                <div class="transcript-label">📝 Live Translation</div>
+                <div class="transcript-text" id="transcript-box">
+                    <span style="color:var(--text-muted);font-style:italic">Listening…</span>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="interview-controls glass">
+                <div class="controls-left">
+                    <button class="mic-btn" id="mic-btn" title="Toggle microphone">🎤</button>
+                    <span class="silence-timer" id="silence-timer"></span>
+                </div>
+                <div style="font-size:0.82rem;color:var(--text-muted);text-align:center">
+                    Speak your answer clearly. Click Submit when finished.
+                </div>
+                <div class="controls-right">
+                    <button class="btn btn-secondary btn-sm" id="skip-btn">Skip ⏭</button>
+                    <button class="btn btn-primary" id="submit-answer-btn">✅ Submit Answer</button>
+                    <button class="btn btn-primary" id="next-question-btn" disabled>Next Question ⏭</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="interview-sidebar">
+
+            <!-- Webcam -->
+            <div class="webcam-card glass">
+                <div class="webcam-wrapper" id="webcam-wrapper">
+                    <video id="webcam-video" autoplay muted playsinline></video>
+                    <canvas id="face-canvas" style="position:absolute;top:0;left:0;pointer-events:none"></canvas>
+                    <div class="webcam-overlay"></div>
+                    <div class="webcam-rec-badge">
+                        <span class="rec-dot"></span> REC
+                    </div>
+                    <!-- Face count live badge -->
+                    <div class="face-count-badge ok" id="face-count-badge">
+                        <span id="face-count-icon">👤</span>
+                        <span id="face-count-text">Initializing…</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Facial Expression Panel -->
+            <div class="face-panel glass">
+                <div class="face-panel-title">😊 Facial Expression AI</div>
+                <div class="dominant-expr" id="dominant-expr">Initializing camera…</div>
+
+                <div class="face-expr-row">
+                    <span class="face-expr-label">😊 Happy</span>
+                    <div class="face-expr-bar-bg">
+                        <div class="face-expr-bar-fill expr-happy" id="expr-happy"></div>
+                    </div>
+                    <span class="face-expr-val" id="val-happy">0%</span>
+                </div>
+                <div class="face-expr-row">
+                    <span class="face-expr-label">😐 Neutral</span>
+                    <div class="face-expr-bar-bg">
+                        <div class="face-expr-bar-fill expr-neutral" id="expr-neutral"></div>
+                    </div>
+                    <span class="face-expr-val" id="val-neutral">0%</span>
+                </div>
+                <div class="face-expr-row">
+                    <span class="face-expr-label">😮 Surprised</span>
+                    <div class="face-expr-bar-bg">
+                        <div class="face-expr-bar-fill expr-surprised" id="expr-surprised"></div>
+                    </div>
+                    <span class="face-expr-val" id="val-surprised">0%</span>
+                </div>
+                <div class="face-expr-row">
+                    <span class="face-expr-label">😰 Fearful</span>
+                    <div class="face-expr-bar-bg">
+                        <div class="face-expr-bar-fill expr-fearful" id="expr-fearful"></div>
+                    </div>
+                    <span class="face-expr-val" id="val-fearful">0%</span>
+                </div>
+                <div class="face-expr-row">
+                    <span class="face-expr-label">😢 Sad</span>
+                    <div class="face-expr-bar-bg">
+                        <div class="face-expr-bar-fill expr-sad" id="expr-sad"></div>
+                    </div>
+                    <span class="face-expr-val" id="val-sad">0%</span>
+                </div>
+                <div class="face-expr-row">
+                    <span class="face-expr-label">😠 Angry</span>
+                    <div class="face-expr-bar-bg">
+                        <div class="face-expr-bar-fill expr-angry" id="expr-angry"></div>
+                    </div>
+                    <span class="face-expr-val" id="val-angry">0%</span>
+                </div>
+                <div class="face-status" id="face-status">Loading face models…</div>
+            </div>
+
+            <!-- Live Metrics -->
+            <div class="metrics-card glass">
+                <div class="metrics-title">📊 Live Speech Analysis</div>
+
+                <div class="metric-item">
+                    <div class="metric-header">
+                        <span class="metric-name">🗣 Communication</span>
+                        <span class="metric-score" id="score-communication">—</span>
+                    </div>
+                    <div class="metric-bar-bg">
+                        <div class="metric-bar-fill bar-communication" id="bar-communication" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric-header">
+                        <span class="metric-name">💪 Confidence</span>
+                        <span class="metric-score" id="score-confidence">—</span>
+                    </div>
+                    <div class="metric-bar-bg">
+                        <div class="metric-bar-fill bar-confidence" id="bar-confidence" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric-header">
+                        <span class="metric-name">🌊 Fluency</span>
+                        <span class="metric-score" id="score-fluency">—</span>
+                    </div>
+                    <div class="metric-bar-bg">
+                        <div class="metric-bar-fill bar-fluency" id="bar-fluency" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric-header">
+                        <span class="metric-name">🎯 Clarity</span>
+                        <span class="metric-score" id="score-clarity">—</span>
+                    </div>
+                    <div class="metric-bar-bg">
+                        <div class="metric-bar-fill bar-clarity" id="bar-clarity" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <div class="metric-item">
+                    <div class="metric-header">
+                        <span class="metric-name">📌 Relevance</span>
+                        <span class="metric-score" id="score-relevance">—</span>
+                    </div>
+                    <div class="metric-bar-bg">
+                        <div class="metric-bar-fill bar-relevance" id="bar-relevance" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- end sidebar -->
+    </div><!-- end layout -->
+
+    <!-- Multi-Face Violation Overlay -->
+    <div id="multi-face-overlay">
+        <div class="mf-icon">🚨</div>
+        <div class="mf-title">Multiple Faces Detected!</div>
+        <div class="mf-subtitle">
+            Only the candidate should be visible on camera.<br>
+            Please remove all other people from the frame immediately.
+        </div>
+        <div class="mf-countdown-ring">
+            <svg viewBox="0 0 100 100" width="110" height="110">
+                <circle class="ring-bg" cx="50" cy="50" r="45" stroke-width="8" />
+                <circle class="ring-fill" id="mf-ring-fill" cx="50" cy="50" r="45" stroke-width="8"
+                    style="stroke-dasharray:283;stroke-dashoffset:0" />
+            </svg>
+            <div class="mf-countdown-num" id="mf-countdown-num">7</div>
+        </div>
+        <div class="mf-resolve">Terminating in <strong id="mf-secs-left">7</strong>s unless resolved…</div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="js/three.min.js"></script>
+    <script src="js/GLTFLoader.js"></script>
+
+    <script src="js/app.js"></script>
+    <script src="js/speechRecognition.js"></script>
+    <script src="js/speechSynthesis.js"></script>
+    <script src="js/interview.js"></script>
+
+    <!-- Face Detection: Expression tracking + Multi-Face guard (runs independently) -->
+    <script>
+        // Global logs — read by interview.js on finish / violation
+        window.faceExpressionLog = [];
+        window.multiFaceViolations = 0;
+
+        (async function initFaceApi() {
+            const MODEL_URL = 'weights';
+            const statusEl = document.getElementById('face-status');
+            const dominantEl = document.getElementById('dominant-expr');
+            const badge = document.getElementById('face-count-badge');
+            const badgeIcon = document.getElementById('face-count-icon');
+            const badgeText = document.getElementById('face-count-text');
+            const canvas = document.getElementById('face-canvas');
+            const video = document.getElementById('webcam-video');
+            const overlay = document.getElementById('multi-face-overlay');
+            const ringFill = document.getElementById('mf-ring-fill');
+            const countdownNum = document.getElementById('mf-countdown-num');
+            const secsLeftEl = document.getElementById('mf-secs-left');
+
+            // ── Thresholds ──────────────────────────────────────────
+            const WARN_STREAK = 3;   // consecutive multi-face frames → show overlay
+            const TERMINATE_STREAK = 10;  // consecutive multi-face frames → terminate
+            const RING_TOTAL = 283; // SVG circle circumference (r=45)
+
+            let multiFaceStreak = 0;
+            let overlayVisible = false;
+
+            const EXPR_KEYS = ['happy', 'neutral', 'surprised', 'fearful', 'sad', 'angry', 'disgusted'];
+            const EXPR_ICONS = { happy: '😊', neutral: '😐', surprised: '😮', fearful: '😰', sad: '😢', angry: '😠', disgusted: '🤢' };
+
+            // ── Load Models ─────────────────────────────────────────
+            try {
+                statusEl.textContent = 'Loading face models…';
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
+                ]);
+                statusEl.textContent = 'Face models ready ✓';
+
+                video.addEventListener('loadedmetadata', () => startDetection(video));
+                if (video.readyState >= 2) startDetection(video);
+
+            } catch (e) {
+                statusEl.textContent = 'Face API unavailable';
+                console.warn('face-api error:', e);
+            }
+
+            function startDetection(v) {
+                // Size canvas to match video
+                canvas.width = v.videoWidth || v.clientWidth;
+                canvas.height = v.videoHeight || v.clientHeight;
+                statusEl.textContent = 'Detecting…';
+                detectLoop(v);
+            }
+
+            async function detectLoop(v) {
+                if (v.paused || v.ended) { setTimeout(() => detectLoop(v), 300); return; }
+
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                try {
+                    // ── Detect ALL faces ─────────────────────────────
+                    const displaySize = { width: v.videoWidth || v.clientWidth, height: v.videoHeight || v.clientHeight };
+                    faceapi.matchDimensions(canvas, displaySize);
+
+                    const results = await faceapi
+                        .detectAllFaces(v, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 }))
+                        .withFaceExpressions();
+
+                    const faceCount = results.length;
+
+                    // ── Update face-count badge ───────────────────────
+                    if (faceCount === 0) {
+                        setBadge('ok', '👤', 'No face');
+                        dominantEl.textContent = '👤 No face detected';
+                        statusEl.textContent = 'Point camera at your face';
+                    } else if (faceCount === 1) {
+                        setBadge('ok', '✅', '1 Face ✓');
+                    } else {
+                        setBadge('warn', '⚠', `${faceCount} Faces!`);
+                    }
+
+                    // ── Draw bounding boxes ───────────────────────────
+                    const resized = faceapi.resizeResults(results, displaySize);
+                    resized.forEach((r, i) => {
+                        const { x, y, width, height } = r.detection.box;
+                        const isExtra = i > 0 || faceCount > 1;
+                        ctx.strokeStyle = isExtra ? '#ef4444' : '#10b981';
+                        ctx.lineWidth = 2;
+                        ctx.shadowColor = isExtra ? 'rgba(239,68,68,0.7)' : 'rgba(16,185,129,0.5)';
+                        ctx.shadowBlur = 8;
+                        ctx.strokeRect(x, y, width, height);
+                        // Label
+                        ctx.fillStyle = isExtra ? '#ef4444' : '#10b981';
+                        ctx.font = 'bold 11px Inter, sans-serif';
+                        ctx.fillText(isExtra ? `⚠ Extra Face ${i + 1}` : '✓ Candidate', x + 4, y - 5);
+                    });
+                    ctx.shadowBlur = 0;
+
+                    // ── Expression analysis (primary face only) ───────
+                    if (faceCount >= 1) {
+                        const expr = results[0].expressions;
+                        const sorted = EXPR_KEYS.slice().sort((a, b) => (expr[b] || 0) - (expr[a] || 0));
+                        const top = sorted[0];
+
+                        const snapshot = {};
+                        EXPR_KEYS.forEach(k => { snapshot[k] = expr[k] || 0; });
+                        window.faceExpressionLog.push(snapshot);
+
+                        dominantEl.textContent = `${EXPR_ICONS[top] || ''} ${top.charAt(0).toUpperCase() + top.slice(1)} (${Math.round((expr[top] || 0) * 100)}%)`;
+                        EXPR_KEYS.forEach(key => {
+                            const pct = Math.round((expr[key] || 0) * 100);
+                            const bar = document.getElementById('expr-' + key);
+                            const val = document.getElementById('val-' + key);
+                            if (bar) bar.style.width = pct + '%';
+                            if (val) val.textContent = pct + '%';
+                        });
+                        statusEl.textContent = `${faceCount} face(s) · ${window.faceExpressionLog.length} frames`;
+                    }
+
+                    // ── Multi-face streak logic ───────────────────────
+                    if (faceCount > 1) {
+                        multiFaceStreak++;
+                        window.multiFaceViolations++;
+
+                        if (multiFaceStreak >= WARN_STREAK && !overlayVisible) {
+                            showViolationOverlay();
+                        }
+
+                        // Update countdown ring
+                        if (overlayVisible) {
+                            const secsLeft = Math.max(0, Math.ceil((TERMINATE_STREAK - multiFaceStreak) * 0.6));
+                            const progress = multiFaceStreak / TERMINATE_STREAK;
+                            ringFill.style.strokeDashoffset = RING_TOTAL * (1 - progress);
+                            countdownNum.textContent = secsLeft;
+                            secsLeftEl.textContent = secsLeft;
+                        }
+
+                        if (multiFaceStreak >= TERMINATE_STREAK) {
+                            // ── TERMINATE ────────────────────────────────
+                            if (typeof window.terminateForViolation === 'function') {
+                                window.terminateForViolation();
+                            } else {
+                                // Fallback if interview.js not loaded yet
+                                sessionStorage.setItem('violationTerminated', 'true');
+                                window.location.href = 'results.html';
+                            }
+                            return; // stop loop
+                        }
+
+                    } else {
+                        // ── Single / no face → reset streak ──────────────
+                        if (multiFaceStreak > 0) {
+                            multiFaceStreak = 0;
+                            if (overlayVisible) hideViolationOverlay();
+                        }
+                    }
+
+                } catch (err) {
+                    // silence individual frame errors
+                }
+
+                setTimeout(() => detectLoop(v), 600);
+            }
+
+            // ── Badge helpers ────────────────────────────────────────
+            function setBadge(type, icon, text) {
+                badge.className = `face-count-badge ${type}`;
+                badgeIcon.textContent = icon;
+                badgeText.textContent = text;
+            }
+
+            // ── Overlay helpers ──────────────────────────────────────
+            function showViolationOverlay() {
+                overlayVisible = true;
+                overlay.classList.add('visible');
+                ringFill.style.strokeDashoffset = RING_TOTAL;
+            }
+
+            function hideViolationOverlay() {
+                overlayVisible = false;
+                overlay.classList.remove('visible');
+                ringFill.style.strokeDashoffset = 0;
+                countdownNum.textContent = '7';
+                secsLeftEl.textContent = '7';
+            }
+
+        })();
+    </script>
+
+</body>
+
+</html>

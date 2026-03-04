@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Interview Platform — HR Dashboard</title>
+  <meta name="description" content="Configure and launch AI-powered interviews with real-time speech analysis." />
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    /* ── Page-specific styles ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 70px 24px 48px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--accent-blue);
+      letter-spacing: 0.5px;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.12;
+      margin-bottom: 18px;
+      letter-spacing: -1px;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 40px;
+    }
+
+    .feature-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 50px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* ── Config Box ── */
+    .config-section {
+      position: relative;
+      z-index: 1;
+      padding: 0 24px 80px;
+    }
+
+    .config-card {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 44px 48px;
+    }
+
+    .config-card h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    .form-grid .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .select-wrapper {
+      position: relative;
+    }
+
+    .select-wrapper::after {
+      content: '▾';
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+      font-size: 1.1rem;
+    }
+
+    /* Role cards */
+    .role-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .role-card {
+      padding: 18px 14px;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      transition: all var(--transition);
+      text-align: center;
+    }
+
+    .role-card:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+      background: rgba(59, 130, 246, 0.05);
+      transform: translateY(-2px);
+    }
+
+    .role-card.selected {
+      border-color: var(--accent-blue);
+      background: rgba(59, 130, 246, 0.1);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+    }
+
+    .role-card .icon {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+    }
+
+    .role-card .name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Difficulty toggle */
+    .difficulty-tabs {
+      display: flex;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .diff-tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all var(--transition);
+      color: var(--text-muted);
+    }
+
+    .diff-tab.selected {
+      background: var(--grad-primary);
+      color: white;
+    }
+
+    .diff-tab:not(.selected):hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-secondary);
+    }
+
+    /* Count slider */
+    .question-count-display {
+      text-align: center;
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: var(--grad-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 6px 0;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent-blue) var(--progress, 50%), rgba(255, 255, 255, 0.1) var(--progress, 50%));
+      outline: none;
+      cursor: pointer;
+      padding: 0;
+      border: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid var(--accent-blue);
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+      cursor: pointer;
+    }
+
+    /* Launch button area */
+    .launch-area {
+      margin-top: 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .launch-area .btn-primary {
+      padding: 18px 56px;
+      font-size: 1.15rem;
+      letter-spacing: 0.3px;
+    }
+
+    .api-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 48px;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat-card {
+      padding: 22px 32px;
+      text-align: center;
+      min-width: 160px;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      background: var(--grad-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .role-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .config-card {
+        padding: 28px 22px;
+      }
+
+      .stats-row {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="/" class="logo">
+      <div class="logo-icon">🎯</div>
+      <div>
+        <div class="logo-text">InterviewAI</div>
+        <div class="logo-sub">Powered by Gemini</div>
+      </div>
+    </a>
+    <div id="api-status-pill" class="status-pill">
+      <span class="status-dot"></span>
+      <span id="api-status-text">Checking...</span>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero animate-fade-up">
+    <div class="hero-badge">✨ AI-Powered · Gemini · Real-Time Analysis</div>
+    <h1>The Future of<br><span class="text-gradient">Technical Interviewing</span></h1>
+    <p>Paste a Job Description, let AI generate 10 targeted questions and analyze candidate responses across 5
+      dimensions in real time.</p>
+
+    <div class="feature-pills">
+      <span class="pill">📹 Webcam Monitoring</span>
+      <span class="pill">🎤 Speech Recognition</span>
+      <span class="pill">🧠 Gemini AI Analysis</span>
+      <span class="pill">📊 Real-Time Scoring</span>
+      <span class="pill">🎯 JD-Based Questions</span>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <div class="stats-row animate-fade-up delay-200">
+    <div class="stat-card glass">
+      <div class="stat-value">5</div>
+      <div class="stat-label">Analysis Dimensions</div>
+    </div>
+    <div class="stat-card glass">
+      <div class="stat-value">10</div>
+      <div class="stat-label">Questions Per Interview</div>
+    </div>
+    <div class="stat-card glass">
+      <div class="stat-value">Gemini</div>
+      <div class="stat-label">AI Question Generator</div>
+    </div>
+  </div>
+
+  <!-- Config -->
+  <section class="config-section animate-fade-up delay-300">
+    <div class="config-card glass">
+      <h2>⚙️ Configure Interview Session</h2>
+
+      <!-- Candidate Name -->
+      <div class="form-group full-width" style="margin-bottom:22px">
+        <label for="candidate-name">Candidate Name</label>
+        <input type="text" id="candidate-name" placeholder="e.g. Priya Sharma" autocomplete="off" />
+      </div>
+
+      <!-- Job Description -->
+      <div class="form-group" style="margin-bottom:22px">
+        <label for="job-description">Job Description <span
+            style="color:var(--text-muted);font-weight:400;font-size:0.82rem">(paste the full JD — AI will generate
+            role-specific questions)</span></label>
+        <textarea id="job-description" rows="6"
+          placeholder="e.g. We are looking for a Senior React Developer with 3+ years building scalable SPAs. Responsibilities include: leading the frontend architecture, optimizing performance, mentoring junior devs, collaborating with product teams..."
+          style="resize:vertical;min-height:140px;font-family:inherit;line-height:1.6"></textarea>
+      </div>
+
+      <!-- Note: 10 questions are always used (5 universal + 5 JD-generated) -->
+
+      <!-- Launch -->
+      <div class="launch-area">
+        <button id="launch-btn" class="btn btn-primary btn-lg animate-glow">
+          🚀 Launch Interview
+        </button>
+        <div class="api-status">
+          <span id="mode-indicator">⏳ Detecting AI mode...</span>
+        </div>
+        <p style="font-size:0.8rem;color:var(--text-muted);text-align:center;max-width:400px;">
+          Ensure camera and microphone permissions are granted in your browser.
+          Best experienced in <strong style="color:var(--text-secondary)">Google Chrome</strong> or <strong
+            style="color:var(--text-secondary)">Microsoft Edge</strong>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Toast -->
+  <div id="toast-container"></div>
+
+  <script>
+    // Questions are always fixed at 10 (5 universal + 5 JD-generated)
+
+    // ── API Status ─────────────────────────────────────
+    async function checkApiStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        const pill = document.getElementById('api-status-pill');
+        const text = document.getElementById('api-status-text');
+        const mode = document.getElementById('mode-indicator');
+
+        if (data.gemini_enabled) {
+          text.textContent = 'Gemini AI Online';
+          mode.textContent = '🧠 Gemini will generate JD-specific questions';
+          mode.style.color = 'var(--accent-green)';
+        } else {
+          text.textContent = 'Heuristic Mode';
+          pill.style.background = 'rgba(245,158,11,0.1)';
+          pill.style.borderColor = 'rgba(245,158,11,0.3)';
+          pill.style.color = 'var(--accent-yellow)';
+          document.querySelector('.status-dot').style.background = 'var(--accent-yellow)';
+          mode.textContent = '⚙️ JD questions use keyword-matching (set GEMINI_API_KEY for full AI)';
+          mode.style.color = 'var(--accent-yellow)';
+        }
+      } catch {
+        document.getElementById('api-status-text').textContent = 'Server offline';
+        document.getElementById('mode-indicator').textContent = '❌ Cannot connect to backend — is Flask running?';
+        document.getElementById('mode-indicator').style.color = 'var(--accent-red)';
+      }
+    }
+
+    checkApiStatus();
+
+    // ── Launch ─────────────────────────────────────────
+    document.getElementById('launch-btn').addEventListener('click', () => {
+      const name = document.getElementById('candidate-name').value.trim();
+      const jd = document.getElementById('job-description').value.trim();
+
+      if (!name) {
+        showToast('Please enter the candidate name.', 'error');
+        document.getElementById('candidate-name').focus();
+        return;
+      }
+      if (!jd) {
+        showToast('Please paste the Job Description so AI can generate relevant questions.', 'error');
+        document.getElementById('job-description').focus();
+        return;
+      }
+
+      const config = {
+        candidateName: name,
+        jobDescription: jd,
+        questionCount: 10,
+        sessionId: 'sess_' + Date.now(),
+        startTime: new Date().toISOString(),
+      };
+
+      sessionStorage.setItem('interviewConfig', JSON.stringify(config));
+      window.location.href = 'interview.html';
+    });
+
+    // ── Toast ──────────────────────────────────────────
+    function showToast(msg, type = 'info') {
+      const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+      const el = document.createElement('div');
+      el.className = `toast toast-${type}`;
+      el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+      document.getElementById('toast-container').appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+  </script>
+</body>
+
+</html>

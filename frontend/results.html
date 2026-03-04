@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>InterviewAI — Results Report</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/results.css" />
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="app-header">
+        <a href="/" class="logo">
+            <div class="logo-icon">🎯</div>
+            <div>
+                <div class="logo-text">InterviewAI</div>
+                <div class="logo-sub">Interview Results</div>
+            </div>
+        </a>
+        <div class="status-pill">
+            <span class="status-dot"></span>
+            <span>Session Complete</span>
+        </div>
+    </header>
+
+    <!-- Results Layout -->
+    <div class="results-layout">
+
+        <!-- Page Header -->
+        <div class="results-header animate-fade-up">
+            <h1>🏁 Interview Complete</h1>
+            <p class="text-secondary">Here's the AI-generated performance report</p>
+            <div class="candidate-badge" id="candidate-name-badge">👤 Candidate</div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-top:8px" id="session-info"></div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px" id="session-time"></div>
+        </div>
+
+        <!-- Violation Notice Banner (shown only if session was terminated early) -->
+        <div id="violation-banner" style="display:none" class="animate-fade-up">
+        </div>
+
+        <!-- Overview Row: Ring + Metric Cards -->
+        <div class="overview-row animate-fade-up delay-100">
+
+            <!-- Score Ring -->
+            <div class="score-ring-card glass">
+                <div class="ring-container">
+                    <svg id="score-ring-svg" viewBox="0 0 180 180">
+                        <defs>
+                            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#3b82f6" />
+                                <stop offset="100%" style="stop-color:#8b5cf6" />
+                            </linearGradient>
+                        </defs>
+                        <circle id="score-ring-bg" cx="90" cy="90" r="80" />
+                        <circle id="score-ring-fill" cx="90" cy="90" r="80" />
+                    </svg>
+                    <div class="ring-center">
+                        <div class="ring-score" id="ring-score-num">0</div>
+                        <div class="ring-grade" id="ring-grade">—</div>
+                        <div class="ring-label" id="ring-label">Overall</div>
+                    </div>
+                </div>
+                <div class="session-info" id="score-ring-meta"></div>
+            </div>
+
+            <!-- Metric Cards -->
+            <div class="metric-cards-grid">
+                <!-- Communication -->
+                <div class="metric-result-card glass" id="metric-card-communication">
+                    <div class="card-header">
+                        <div class="metric-title-row"><span>🗣</span> Communication</div>
+                        <div class="large-score-num">—</div>
+                    </div>
+                    <div class="result-bar-bg">
+                        <div class="result-bar-fill"></div>
+                    </div>
+                </div>
+                <!-- Confidence -->
+                <div class="metric-result-card glass" id="metric-card-confidence">
+                    <div class="card-header">
+                        <div class="metric-title-row"><span>💪</span> Confidence</div>
+                        <div class="large-score-num">—</div>
+                    </div>
+                    <div class="result-bar-bg">
+                        <div class="result-bar-fill"></div>
+                    </div>
+                </div>
+                <!-- Fluency -->
+                <div class="metric-result-card glass" id="metric-card-fluency">
+                    <div class="card-header">
+                        <div class="metric-title-row"><span>🌊</span> Fluency</div>
+                        <div class="large-score-num">—</div>
+                    </div>
+                    <div class="result-bar-bg">
+                        <div class="result-bar-fill"></div>
+                    </div>
+                </div>
+                <!-- Clarity -->
+                <div class="metric-result-card glass" id="metric-card-clarity">
+                    <div class="card-header">
+                        <div class="metric-title-row"><span>🎯</span> Clarity</div>
+                        <div class="large-score-num">—</div>
+                    </div>
+                    <div class="result-bar-bg">
+                        <div class="result-bar-fill"></div>
+                    </div>
+                </div>
+                <!-- Relevance (spans full width) -->
+                <div class="metric-result-card glass" id="metric-card-relevance" style="grid-column:1/-1">
+                    <div class="card-header">
+                        <div class="metric-title-row"><span>📌</span> Response Relevance</div>
+                        <div class="large-score-num">—</div>
+                    </div>
+                    <div class="result-bar-bg">
+                        <div class="result-bar-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-row animate-fade-up delay-200">
+            <div class="chart-card glass">
+                <div class="chart-title">🕸 Skills Radar</div>
+                <canvas id="radar-canvas"></canvas>
+            </div>
+            <div class="chart-card glass">
+                <div class="chart-title">📊 Score per Question</div>
+                <canvas id="bar-canvas"></canvas>
+            </div>
+        </div>
+
+
+        <!-- Facial Expression Report -->
+        <div class="face-results-section animate-fade-up delay-250" id="face-results-section">
+            <div class="section-title">😊 Facial Expression Report</div>
+            <div class="face-results-card glass" id="face-results-card">
+
+                <!-- Dominant emotion + positivity score -->
+                <div class="face-results-top">
+                    <div class="face-dominant-badge" id="face-dominant-badge">
+                        <div class="face-dominant-emoji" id="face-dominant-emoji">😐</div>
+                        <div>
+                            <div class="face-dominant-label" id="face-dominant-label">Analyzing…</div>
+                            <div class="face-dominant-sub">Dominant Expression</div>
+                        </div>
+                    </div>
+                    <div class="face-positivity-wrap">
+                        <div class="face-positivity-score" id="face-positivity-score">—</div>
+                        <div class="face-positivity-label">Positivity Score</div>
+                    </div>
+                </div>
+
+                <!-- Per-emotion bars -->
+                <div class="face-expr-grid" id="face-expr-grid"></div>
+
+                <!-- Suggestion tip -->
+                <div class="face-tip-box" id="face-tip-box"></div>
+
+            </div>
+        </div>
+
+        <!-- Q&A Transcript -->
+        <div class="transcript-section animate-fade-up delay-300">
+            <div class="section-title">📝 Answer Transcript</div>
+            <div id="transcript-list"></div>
+        </div>
+
+        <div class="results-actions animate-fade-up">
+            <button class="btn btn-primary" id="new-interview-btn">🚀 Start New Interview</button>
+            <button class="btn btn-secondary" id="print-btn">🖨 Print Report</button>
+        </div>
+
+    </div><!-- end results-layout -->
+
+    <div id="toast-container"></div>
+
+    <script src="js/app.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/results.js"></script>
+</body>
+
+</html>
