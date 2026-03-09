@@ -499,7 +499,9 @@
 
             <!-- Transcript / Translation -->
             <div class="transcript-section glass" style="flex:1;min-height:120px">
-                <div class="transcript-label">📝 Live Translation</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                    <div class="transcript-label">📝 Live Transcript</div>
+                </div>
                 <div class="transcript-text" id="transcript-box">
                     <span style="color:var(--text-muted);font-style:italic">Listening…</span>
                 </div>
@@ -510,6 +512,7 @@
                 <div class="controls-left">
                     <button class="mic-btn" id="mic-btn" title="Toggle microphone">🎤</button>
                     <span class="silence-timer" id="silence-timer"></span>
+
                 </div>
                 <div style="font-size:0.82rem;color:var(--text-muted);text-align:center">
                     Speak your answer clearly. Click Submit when finished.
@@ -677,6 +680,7 @@
     <script src="js/app.js"></script>
     <script src="js/speechRecognition.js"></script>
     <script src="js/speechSynthesis.js"></script>
+    <script src="js/avatar.js"></script>
     <script src="js/interview.js"></script>
 
     <!-- Face Detection: Expression tracking + Multi-Face guard (runs independently) -->

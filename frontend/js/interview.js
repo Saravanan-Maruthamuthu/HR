@@ -29,6 +29,8 @@ window.faceExpressionScore = null; // set by face detection script
     let silenceCountdown = null;
     let autoNextInterval = null;
 
+
+
     // ── DOM refs ───────────────────────────────────────────────────────
     const els = {
         steps: document.querySelectorAll('.step-dot'),
@@ -54,7 +56,7 @@ window.faceExpressionScore = null; // set by face detection script
         faceAiPlaceholder: document.getElementById('face-ai-placeholder'),
         avatarSpeakingLabel: document.getElementById('avatar-speaking-label'),
         dominantExpr: document.getElementById('dominant-expr'),
-        faceCountText: document.getElementById('face-count-text')
+        faceCountText: document.getElementById('face-count-text'),
     };
 
     // Metric bars
@@ -72,6 +74,8 @@ window.faceExpressionScore = null; // set by face detection script
     // Show short JD excerpt in the header instead of a role name
     const jdShort = jobDescription ? jobDescription.substring(0, 60) + (jobDescription.length > 60 ? '…' : '') : 'Custom JD';
     els.roleEl.textContent = jdShort;
+
+
 
     // Check speech support
     if (!SpeechRec.isSupported()) {
@@ -255,6 +259,7 @@ window.faceExpressionScore = null; // set by face detection script
         els.micBtn.classList.add('active');
 
         SpeechRec.start({
+            lang: 'en-US',
             onFinal: (text) => {
                 currentTranscript = text;
                 transcripts[idx] = text;
@@ -272,6 +277,8 @@ window.faceExpressionScore = null; // set by face detection script
         });
 
     }
+
+
 
     function renderTranscript(final, interim) {
         // Handle typewriter for final text
@@ -344,9 +351,10 @@ window.faceExpressionScore = null; // set by face detection script
         updateAiState('analyzing');
 
         try {
+            const textForAnalysis = transcripts[currentQIndex] || '';
             const result = await App.analyzeAnswer(
                 questions[currentQIndex].text,
-                transcripts[currentQIndex] || '',
+                textForAnalysis,
                 questions[currentQIndex].keywords
             );
             animateMetricBars(result);
@@ -565,6 +573,8 @@ window.faceExpressionScore = null; // set by face detection script
         transcripts[currentQIndex] = transcripts[currentQIndex] || '';
         submitAnswer();
     });
+
+
 
     // ── Replay button: re-read current question via avatar or TTS ──
     if (els.replayBtn) {

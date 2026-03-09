@@ -89,8 +89,8 @@
 }
 
 .ai-avatar {
-    width: 56px;
-    height: 56px;
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     background: var(--grad-primary);
     display: flex;
